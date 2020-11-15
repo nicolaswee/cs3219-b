@@ -1,0 +1,35 @@
+:root {
+    --color__text: #262626;
+    --color__bg: #FAFAFA;
+    --color__border: #dbdbdb;
+    --color__button: rgb(0, 149, 246);
+    --color__border-active: rgb(168,168,168);
+    --color__timestamp: rgb(142,142,142);
+    --color__error:rgb(237, 73, 86);
+    --color__success: limegreen;
+
+    --default__fs: 1.6rem;
+    --default__transition: 0.25s ease-out all;
+}
+* {
+    box-sizing: border-box;
+    margin: 0;
+    font-family: 'Open Sans', sans-serif;
+    color: var(--color__text);
+    font-size: var(--default__fs);
+}
+
+html {
+    font-size: 62.5%; 
+}
+
+.app__screen{
+    height: 100vh;
+    width: 100vw;
+    background-color: var(--color__bg);
+    max-width: 100%;
+}
+
+.navbar__present{
+    padding-top: 6.4rem;
+}

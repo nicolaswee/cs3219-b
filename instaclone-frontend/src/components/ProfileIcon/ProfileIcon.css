@@ -1,0 +1,10 @@
+.icon__default, .icon__image{
+    height: 3rem;
+    width: 3rem;
+    border-radius: 100vh;
+}
+
+.icon__default{
+    background-color: var(--color__border);
+}
+

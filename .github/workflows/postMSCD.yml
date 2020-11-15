@@ -1,0 +1,63 @@
+name: Build and Push POST MS to EKS
+on:
+#   push:
+#    branches:
+#    - 'Backend/**'
+  pull_request:
+    types: [closed]
+    paths:
+      - "backend/post/**"
+      - ".github/workflows/postMSCD.yml"
+      - "kubernetes/manifest/post/**"
+env:
+  AWS_DEFAULT_REGION: ap-southeast-1
+  AWS_DEFAULT_OUTPUT: json
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  CONTAINER_IMAGE: post-deployment:${{ github.sha }}
+
+jobs:
+  build-and-push:
+    name: Build and deploy POST MS to ECR
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    # Add steps here like linting, testing, minification, etc.
+    - name: Setup ECR
+      run: |
+        # Login to AWS ECR
+        $( aws ecr get-login --no-include-email )
+
+    - name: Build and tag the image
+      working-directory: ./backend/post
+      run: |
+        # Build and tag the image
+        docker build \
+          -t $CONTAINER_IMAGE \
+          -t $GITHUB_REPOSITORY:$GITHUB_SHA \
+          --build-arg DB_URL=${{ secrets.DB_URL }} \
+          --build-arg DRIVER=${{ secrets.DRIVER }} \
+          --build-arg DB_USERNAME=${{ secrets.DB_USERNAME }} \
+          --build-arg DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+          --build-arg DB_PORT=${{ secrets.DB_PORT }} \
+          --build-arg DB_NAME=${{ secrets.POST_DB_NAME }} \
+          --build-arg PASS_SECRET=${{ secrets.PASS_SECRET }} \
+          --build-arg S3_BUCKET=${{ secrets.S3_BUCKET }} \
+          --build-arg S3_BUCKET_LINK=${{ secrets.S3_BUCKET_LINK }} \
+          --build-arg S3_KEY=${{ secrets.S3_KEY }} \
+          --build-arg S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+          --build-arg MSK_BROKER_1=${{ secrets.MSK_BROKER_1 }} \
+          --build-arg MSK_BROKER_2=${{ secrets.MSK_BROKER_2 }} \
+          --build-arg REDIS=${{ secrets.REDIS }} \
+          --build-arg FEED_QUEUE_TOPIC=${{ secrets.FEED_QUEUE_TOPIC }} \
+          --build-arg USER_MS=${{ secrets.USER_MS }} \
+          --build-arg CELEBRITY_QUEUE_TOPIC=${{ secrets.CELEBRITY_QUEUE_TOPIC }} \
+          -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$CONTAINER_IMAGE .
+
+    - name: Push the image into ECR
+#      if: github.ref == 'refs/heads/master'
+      run: |
+        docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$CONTAINER_IMAGE
+    # Add additional steps here like scanning of image

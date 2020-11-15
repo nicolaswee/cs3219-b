@@ -1,0 +1,60 @@
+#container-circles #outer-circle, #container-circles #inner-circle{
+    cursor: pointer;
+    transition: 250ms ease background-color;
+    bottom: 0px;
+}
+#container-circles #outer-circle:hover {
+    background-color: rgba(0,0,0,0.4);
+}
+
+#container-circles #outer-circle:hover #inner-circle {
+    background-color: rgba(255,255,255,0.5);
+}
+#container-circles{
+    bottom: 3rem;
+}
+.screen__upload{
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+.screen__upload.mobile{
+    justify-content: flex-start;
+}
+.camera__container{
+    width: 100%;
+    max-width: 700px;
+}
+.camera__container.mobile{
+    background-color: #000;
+}
+.camera__container .react-html5-camera-photo video, .camera__container .react-html5-camera-photo img{
+    object-fit: contain;
+    width: 100%;
+    display: block;
+}
+
+.camera-control__container{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6.4rem;
+    z-index: 5;
+}
+.camera-control__wrapper{
+    width: 100%;
+    max-width: 700px;
+    color: white;
+    margin: auto;
+    display: flex;
+    justify-content: space-around;
+    padding: 1.5rem 0;
+}
+
+.camera-control__wrapper * {
+    color: white;
+}

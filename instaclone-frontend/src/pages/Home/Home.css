@@ -1,0 +1,22 @@
+.screen__home{
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    height: 100%;
+    align-items: center;
+    padding-bottom: 1.5rem;
+}
+
+.screen__home .content-container{
+    --image-height: 0px;
+    max-width: 614px;
+    width: 100%;
+    padding: 1rem 0 2rem 0;
+    transition: var(--default__transition);
+}
+
+@media only screen and (min-width: 750px) {
+    .screen__explore .content-container{
+        padding: 1rem 0 5rem 0;
+    }
+}

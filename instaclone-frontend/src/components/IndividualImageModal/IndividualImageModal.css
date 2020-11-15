@@ -1,0 +1,51 @@
+.image-modal__container{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 110;
+    transition: var(--default__transition);
+}
+
+.image-modal__container.hidden{
+    opacity: 0;
+    pointer-events: none;
+}
+
+.image-modal__shadow{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.image-modal__content-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.image-modal__card{
+    position: relative;
+    z-index: 115;
+    max-width: 500px;
+    width: 100%;
+    background-color: white;
+    margin: 25px auto;
+}
+
+.image-modal__card .homefeeditem__image img{
+    width: 100%;
+    height: var(--row-height);
+    max-height: 500px;
+    object-fit: cover;
+    display: block;
+}
+
+.image-modal__card .homefeeditem__header{
+    margin: 0;
+}

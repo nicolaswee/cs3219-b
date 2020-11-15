@@ -1,0 +1,24 @@
+.navigation__container.newpost{
+    height: 6.4rem;
+}
+
+.navigation__container.newpost span{
+    font-weight: 600;
+}
+.navigation__container.newpost .share{
+    cursor: pointer;
+    color: var(--color__button);
+}
+.navigation__container.newpost .share div{
+    margin-bottom: 0.75rem;
+}
+.navigation__container.newpost .MuiIconButton-root {
+    margin: 0;
+    padding: 0;
+    margin-right: 1rem;
+}
+
+.navigation__container.newpost .navigation__wrapper div{
+    display: flex;
+    align-items: center;
+}

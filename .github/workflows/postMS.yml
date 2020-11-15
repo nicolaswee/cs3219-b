@@ -1,0 +1,172 @@
+name: Post MS CI
+
+on:
+  push:
+    branches:
+    - 'Backend/**'
+    - 'Backend-**'
+    - 'backend/**'
+    - 'backend-**'
+    paths:
+      - "backend/post/**"
+      - ".github/workflows/postMS.yml"
+env:
+  AWS_DEFAULT_REGION: ap-southeast-1
+  AWS_DEFAULT_OUTPUT: json
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  CONTAINER_IMAGE: post-staging:${{ github.sha }}
+
+jobs:
+  job_one:
+    name: Post MS
+    runs-on: ubuntu-latest
+    #Service ontainers to run with container job
+    services:
+      #label used to access the service container
+      postgres:
+        #Docker Hub image
+        image: postgres:12
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: posts
+        #Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      working-directory: ./backend/post
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Connect to PostgresSQL and set up tables
+      working-directory: ./backend/post/test
+      run: python client.py
+
+    - name: Set up kafka and zookeeper in docker
+      working-directory: ./backend/post/test
+      run: docker-compose -f docker-compose.yml up -d
+
+    - name: Check if docker compose is still up
+      run: docker logs broker
+
+    - name: Test Post MS
+      working-directory: ./backend/post/test
+      run: |
+        pip install pytest
+        python -m pytest
+      env:
+       DB_URL: localhost
+       DRIVER: ${{ secrets.DRIVER }}
+       DB_USERNAME: root
+       DB_PASSWORD: password
+       DB_PORT: 5432
+       DB_NAME: posts
+       S3_BUCKET: ${{ secrets.POST_CI_BUCKET }}
+       S3_KEY: ${{ secrets.S3_KEY }}
+       S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+       S3_BUCKET_LINK: ${{ secrets.POST_CI_BUCKET_LINK }}
+       MSK_BROKER_1: localhost
+       MSK_BROKER_2: localhost
+       REDIS: redis
+       REDIS_PORT: 6379
+       PASS_SECRET: ${{ secrets.PASS_SECRET }}
+       FEED_QUEUE_TOPIC: ${{ secrets.STAGING_FEED_QUEUE_TOPIC }}
+       CELEBRITY_QUEUE_TOPIC: ${{ secrets.STAGING_CELEBRITY_QUEUE_TOPIC }}
+       USER_MS: ${{ secrets.STAGING_USER_MS }}
+
+    - name: View docker logs
+      if: ${{ failure() }}
+      run: docker logs broker
+
+  job_two:
+    needs: [job_one]
+    name: Push and deploy to ECR and fargate
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-southeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and tag the image
+      id: build-image
+      working-directory: ./backend/post
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: post-staging
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build and tag the image
+        docker build \
+          -t $CONTAINER_IMAGE \
+          -t $GITHUB_REPOSITORY:$GITHUB_SHA \
+          --build-arg DB_URL=${{ secrets.STAGING_DB_URL }} \
+          --build-arg DRIVER=${{ secrets.DRIVER }} \
+          --build-arg DB_USERNAME=${{ secrets.STAGING_DB_USERNAME }} \
+          --build-arg DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+          --build-arg DB_PORT=${{ secrets.STAGING_DB_PORT }} \
+          --build-arg DB_NAME=${{ secrets.POST_DB_NAME }} \
+          --build-arg PASS_SECRET=${{ secrets.PASS_SECRET }} \
+          --build-arg S3_BUCKET=${{ secrets.S3_BUCKET }} \
+          --build-arg S3_BUCKET_LINK=${{ secrets.S3_BUCKET_LINK }} \
+          --build-arg S3_KEY=${{ secrets.S3_KEY }} \
+          --build-arg S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
+          --build-arg MSK_BROKER_1=${{ secrets.MSK_BROKER_1 }} \
+          --build-arg MSK_BROKER_2=${{ secrets.MSK_BROKER_2 }} \
+          --build-arg REDIS=${{ secrets.REDIS }} \
+          --build-arg FEED_QUEUE_TOPIC=${{ secrets.STAGING_FEED_QUEUE_TOPIC }} \
+          --build-arg CELEBRITY_QUEUE_TOPIC=${{ secrets.STAGING_CELEBRITY_QUEUE_TOPIC }} \
+          --build-arg USER_MS=${{ secrets.STAGING_USER_MS }} \
+          -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$CONTAINER_IMAGE \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ./backend/post/staging-post-task-definition.json
+        container-name: post
+        image: ${{ steps.build-image.outputs.image }}
+#
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: staging-post-service
+        cluster: staging
+        wait-for-service-stability: false

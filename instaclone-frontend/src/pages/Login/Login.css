@@ -1,0 +1,78 @@
+.screen__login{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #FFF;
+}
+.screen__login > *{
+    max-width: 350px;
+}
+.screen__login h1{
+    font-family: 'Pacifico', cursive;
+    font-size: 3.6rem;
+    margin-bottom: 3rem;
+}
+
+.screen__login > form{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #FFF;
+    border: none;
+    width: 100%;
+    padding: 2rem 4rem;
+}
+
+.screen__login > form {
+    margin-bottom: 1rem;
+}
+
+.login__separator{
+    margin: 2.5rem;
+    display: flex;
+    width: 100%;
+}
+.login__separator > span{
+    color: var(--color__border-active);
+    font-size: 1.2rem;
+    font-weight: 600;
+    background-color: #FFF;
+    padding: 0 2rem;
+}
+.login__separator::before, .login__separator::after{
+    content:'';
+    width: 100%;
+    height: 1px;
+    background-color: var(--color__border-active);
+    top: 50%;
+    position: relative
+}
+
+.screen__login > form a{
+    color: var(--color__button);
+    text-decoration: none;
+    font-size: 1.2rem;
+}
+
+.register-text{
+    font-size: 1.2rem;
+    color: var(--color__border-active);
+}
+
+.error-text{
+    margin-top: 1.5rem;
+    font-size: 1.2rem;
+    color: var(--color__error);
+}
+
+@media only screen and (min-width: 475px) {
+    .screen__login > form{
+        background-color: #FFF;
+        border: 1px solid var(--color__border);
+    }
+    .screen__login{
+        background-color: var(--color__bg);
+    }
+}
